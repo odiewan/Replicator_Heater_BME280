@@ -29,7 +29,5 @@ lib/u8TextBox/u8TextBox.cpp
 lib/u8TextBox/u8TextBox.h
 lib/u8TextBox/src/u8TextBox.cpp
 lib/u8TextBox/include/u8TextBox.h
-lib/README
-include/README
 src/main.h.bak
 src/main.cpp.bak
