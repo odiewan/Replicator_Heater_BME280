@@ -9,8 +9,8 @@
 #include <u8TextBox.h>
 #include <u8BarGraph.h>
 #include <u8g2Disp.h>
-#include "ioChan.h"
-#include "ioBtn.h"
+#include <ioChan.h>
+#include <ioBtn.h>
 
 #define STAT_OUT_PIN        LED_BUILTIN /* 13 */
 
@@ -118,6 +118,8 @@ enum opModes {
     OP_MD_TEMP_HOLD,
     OP_MD_IND_MAN,
     OP_MD_RESET_MIN_MAX,
+    OP_MD_OLED_SETTINGS,
+    OP_MD_SERIAL_SETTINGS,
     NUM_OP_MODES
 };
 
@@ -130,19 +132,55 @@ String opMdStr[NUM_OP_MODES] = {
     "<   SP Adj    >",
     "<  Temp Hold  >",
     "<   Ind Man   >",
-    "<Reset Min/max>"
+    "<Reset Min/max>",
+    "<   OLED Opt  >",
+    "<   SER Opt   >",
 };
 
 String opMdOledStr[NUM_OP_MODES] = {
-    "Md:NA",
-    "Md:Boot",
-    "Md:Powerup",
-    "Md:Reset",
-    "Md:Idle",
-    "Md:SP",
-    "Md:Hold",
-    "Md:Ind",
-    "Md:Rst Min/max"};
+    "NA",
+    "Boot",
+    "Powerup",
+    "Reset",
+    "Idle",
+    "SP",
+    "Hold",
+    "Ind",
+    "Rst Min/max",
+    "OLED Opt",
+    "Ser Opt"
+};
+
+enum displayModeStr
+{
+    DM_DEFALT,
+    DM_TEMP_CL,
+    DM_ATMO,
+    DM_HEAT_MAN,
+    DM_SETTINGS,
+    DM_SER_SETTINGS,
+    DM_OLED_SETTINGS,
+    NUM_DM_MODES
+};
+
+String displayModeStr[NUM_DM_MODES] = {
+    "DM DEFALT",
+    "DM TEMP_CL",
+    "DM ATMO",
+    "DM HEAT_MAN",
+    "DM SER SETTINGS"
+    "DM OLED SETTINGS"
+};
+
+String displayModeStrhortStr[NUM_DM_MODES] = {
+    "DM_DEF",
+    "DM_CL",
+    "DM_ATMO",
+    "DM_MAN",
+    "DM_SER",
+    "DM_OLED"
+};
+
 
 enum powerUpSteps {
     PWRUP_NA,

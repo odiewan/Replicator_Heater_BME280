@@ -1,6 +1,8 @@
 #include "main.h"
 
 int opMode;
+int dispModeOLED;
+int dispModeSer;
 int pwrUpStep;
 int statLedState;
 int rLedState;
@@ -10,9 +12,17 @@ int gLedState;
 int iCount;
 
 float tempVar;
+float tempVarShadow;
 float altVar;
 float prsVar;
 float humVar;
+
+// float tempVar;
+// float altVar;
+// float prsVar;
+// float humVar;
+
+
 
 int vInVar;
 ioChannel vInChan;
@@ -51,7 +61,7 @@ float tempKI;
 float tempKP;
 float tempPComp;
 float tempIComp;
-u_int16_t dT;
+float dT;
 
 
 float deltaT; //Time rate of change of the Heater plate in *C/min
@@ -244,13 +254,6 @@ void setup() {
 }
 
 
-//-----------------------------------------------------------------
-void serPrintOpMode(void) {
-  //Serial.print(" OpMd:");
-  Serial.print(opMode);
-  Serial.print(":");
-  Serial.print(opMdStr[opMode]);
-}
 
 //-----------------------------------------------------------------
 float avg(int input) {
@@ -258,8 +261,7 @@ float avg(int input) {
 
   float avg = 0;
 
-  for (int x = 0; x < SAMPLE_CNT - 1; x++)
-  {
+  for (int x = 0; x < SAMPLE_CNT - 1; x++)  {
     ary[x] = ary[x + 1];
     avg += ary[x];
   }
@@ -276,7 +278,7 @@ void handleModeBtn(void) {
   if (btnVar != btnShadow && !btnVar)
     opMode++;
 
-  if (opMode > OP_MD_IND_MAN)
+  if (opMode >= NUM_OP_MODES)
     opMode = OP_MD_IDLE;
   btnShadow = btnVar;
 }
@@ -308,10 +310,13 @@ void calcClosedLoopControl() {
   tempCV = tempPComp + tempIComp;
 
   if (tempCV > 240.0)
-    tempCV = 240.0;
+    tempCV = 240.0f;
   else if (tempCV < 0.0) {
-    tempCV = 0.0;
+    tempCV = 0.0f;
   }
+
+
+
   heatVar00 = tempCV;
 }
 
@@ -383,10 +388,19 @@ void taskStatLED(void) {
 
     case OP_MD_RESET_MIN_MAX:
       statLedState = 1;
+      break;
 
+    case OP_MD_OLED_SETTINGS:
+      statLedState = 1;
+      break;
+
+    case OP_MD_SERIAL_SETTINGS:
+      statLedState = 1;
       break;
   }
 }
+
+
 
 //-----------------------------------------------------------------
 void taskOLED() {
@@ -417,6 +431,8 @@ void taskOLED() {
       case OP_MD_SP_SET:
       case OP_MD_IND_MAN:
       case OP_MD_TEMP_HOLD:
+      case OP_MD_OLED_SETTINGS:
+      case OP_MD_SERIAL_SETTINGS:
         u8disp00->clearBufferU8D();
         u8disp00->writeTxt(opMdOledStr[opMode]);
         u8disp00->writeTxt(utbSP);
@@ -435,55 +451,92 @@ void taskOLED() {
   oledCnt++;
 }
 
+//-----------------------------------------------------------------
+void serPrintOpMode(void)
+{
+  //Serial.print(" OpMd:");
+  Serial.print(opMode);
+  Serial.print(":");
+  Serial.print(opMdStr[opMode]);
+}
+
+//-----------------------------------------------------------------
+void serPrintOledMode(void)
+{
+  Serial.print("OLED Md:");
+  Serial.print(dispModeOLED);
+  Serial.print(":");
+  Serial.print(displayModeStr[dispModeOLED]);
+}
+
+//-----------------------------------------------------------------
+void serPrintSerMode(void)
+{
+  Serial.print("Serial Md:");
+  Serial.print(dispModeSer);
+  Serial.print(":");
+  Serial.print(displayModeStr[dispModeSer]);
+}
+
+//-----------------------------------------------------------------
+void serOledSettingDisp() {
+  static int serCnt = 0;
+
+  if (!(serCnt % 3))
+  {
+    serPrintOledMode();
+
+    serPrintInt("btn", btnVar);
+    serPrintInt("K", knobInVar);
+
+    //Serial.print(" err:");
+    Serial.print(" ");
+    Serial.print(errStStr[errorState]);
+
+    Serial.print("\n");
+  }
+
+  serCnt++;
+}
+
+//-----------------------------------------------------------------
+void serSerSettingDisp() {
+  static int serCnt = 0;
+
+  if (!(serCnt % 3))
+  {
+    serPrintSerMode();
+
+    serPrintInt(" btn", btnVar);
+    serPrintInt(" K", knobInVar);
+
+    //Serial.print(" err:");
+    Serial.print(" ");
+    Serial.print(errStStr[errorState]);
+
+    Serial.print("\n");
+  }
+
+  serCnt++;
+}
+
+
 
 
 //-----------------------------------------------------------------
-void taskSerial() {
+void serHeatManDisp() {
+
   static int serCnt = 0;
 
   if(!(serCnt % 3)) {
       serPrintOpMode();
-      // Serial.print(" u8dDefTB->utbX:" + u8disp00->getX());
-      // Serial.print(" u8dDefTB->utbY:" + u8disp00->getY());
-      // serPrintInt("maxT", maxT);
-      // serPrintInt("minT", minT);
-      // serPrintInt("rangeT", rangeT);
-      // serPrintInt("ic", iCount);
-      tempVar = bme01->readTemperature();
-      prsVar = bme01->readPressure() / 100.0F;
-      altVar = bme01->readAltitude(SEALEVELPRESSURE_HPA);
-      humVar = bme01->readHumidity();
 
       serPrintFlt("T:", tempVar);
-      serPrintFlt("P:", prsVar);
-      serPrintFlt("A:", altVar);
-      serPrintFlt("H:", humVar);
 
-      // serPrintInt("vInVar", vInVar);
-      // serPrintInt("iInVar", iInVar);
-      // serPrintInt(":", iInChan.ioRawVal);
-
-      // tmpFloat = avg(iInChan.ioRawVal);
-      // serPrintFlt("iInVar a:", tmpFloat);
-      // serPrintInt("btn", btnVar);
-
-      // serPrintInt("ledSt", statLedState);
-      // serPrintInt("blinkS", blinkS);
 
       serPrintInt("K", knobInVar);
-      // serPrintInt("KnobR", knobInChan.ioRawVal);
 
 
-      // serPrintInt("heatR", heatVar);
-      serPrintFlt("Err", tempErr);
-
-      serPrintFlt("SP", tempSP);
-      serPrintFlt("CV", tempCV);
-      // serPrintFlt("cP", tempPComp);
-      // serPrintFlt("cI", tempIComp);
-
-      // Serial.print(" w:");
-      // Serial.print(ubgCtrlVar->ubgWCurr);
       serPrintInt("h0", heatVar00);
       serPrintInt("h1", heatVar01);
       serPrintInt("h2", heatVar02);
@@ -499,10 +552,114 @@ void taskSerial() {
   serCnt++;
 }
 
+//-----------------------------------------------------------------
+void serDefDisp() {
+
+  static int serCnt = 0;
+
+  if(!(serCnt % 3)) {
+      serPrintOpMode();
+      // serPrintInt("maxT", maxT);
+      // serPrintInt("minT", minT);
+      // serPrintInt("rangeT", rangeT);
+      // serPrintInt("ic", iCount);
+
+
+      serPrintFlt("T:", tempVar);
+      serPrintFlt("dT:", deltaT);
+
+
+
+      // serPrintFlt("P:", prsVar);
+      // serPrintFlt("A:", altVar);
+      serPrintFlt("H:", humVar);
+      serPrintInt("K", knobInVar);
+      serPrintFlt("Err", tempErr);
+
+      serPrintFlt("SP", tempSP);
+      serPrintFlt("CV", tempCV);
+      // serPrintFlt("cP", tempPComp);
+      // serPrintFlt("cI", tempIComp);
+
+      serPrintInt("h0", heatVar00);
+      serPrintInt("h1", heatVar01);
+      serPrintInt("h2", heatVar02);
+
+      Serial.print(" ");
+      Serial.print(errStStr[errorState]);
+
+      Serial.print("\n");
+  }
+
+  serCnt++;
+}
+
+//-----------------------------------------------------------------
+void serAtmoDisp() {
+
+  static int serCnt = 0;
+
+  if(!(serCnt % 3)) {
+      serPrintOpMode();
+      // serPrintInt("maxT", maxT);
+      // serPrintInt("minT", minT);
+      // serPrintInt("rangeT", rangeT);
+
+      serPrintFlt("T:", tempVar);
+      // serPrintFlt("P:", prsVar);
+      // serPrintFlt("A:", altVar);
+      serPrintFlt("H:", humVar);
+
+
+
+      //Serial.print(" err:");
+      Serial.print(" ");
+      Serial.print(errStStr[errorState]);
+
+      Serial.print("\n");
+  }
+
+  serCnt++;
+}
+
+//-----------------------------------------------------------------
+void taskSerial() {
+
+  switch (opMode) {
+    default:
+    case OP_MD_NA:
+    case OP_MD_BOOT:
+    case OP_MD_PWRUP:
+    case OP_MD_RESET:
+    case OP_MD_IDLE:
+    case OP_MD_SP_SET:
+    case OP_MD_TEMP_HOLD:
+    case OP_MD_RESET_MIN_MAX:
+      serDefDisp();
+      break;
+
+
+    case OP_MD_IND_MAN:
+      serHeatManDisp();
+      break;
+
+
+    case OP_MD_OLED_SETTINGS:
+      serOledSettingDisp();
+      break;
+
+    case OP_MD_SERIAL_SETTINGS:
+      serSerSettingDisp();
+      break;
+  }
+
+      // serAtmoDisp();
+
+
+}
 
 //-----------------------------------------------------------------
 void taskOpMode(void) {
-
 
   switch (opMode) {
     default:
@@ -530,6 +687,7 @@ void taskOpMode(void) {
 
     case OP_MD_RESET:
     case OP_MD_IDLE:
+    case OP_MD_SP_SET:
     case OP_MD_TEMP_HOLD:
     case OP_MD_IND_MAN:
 
@@ -540,12 +698,12 @@ void taskOpMode(void) {
     case OP_MD_RESET_MIN_MAX:
       minT = 1023;
       maxT = 0;
-      opMode = OP_MD_IDLE;
+      opMode = OP_MD_OLED_SETTINGS;
       handleModeBtn();
       break;
 
-    case OP_MD_SP_SET:
-
+    case OP_MD_OLED_SETTINGS:
+    case OP_MD_SERIAL_SETTINGS:
       handleModeBtn();
       break;
   }
@@ -569,48 +727,52 @@ void taskHeat() {
 
   rangeT = maxT - minT;
 
-  switch (opMode) {
-    default:
-      resetPID();
-      break;
+  deltaT = tempVar - tempVarShadow;
 
-    case OP_MD_NA:
-    case OP_MD_BOOT:
-    case OP_MD_PWRUP:
-    case OP_MD_RESET:
-      resetPID();
-      break;
+  switch (opMode)
+  {
+  default:
+    resetPID();
+    break;
 
-    case OP_MD_IDLE:
-      resetPID();
-      break;
+  case OP_MD_NA:
+  case OP_MD_BOOT:
+  case OP_MD_PWRUP:
+  case OP_MD_RESET:
+    resetPID();
+    break;
 
-    case OP_MD_SP_SET:
-      tempSP = (knobProxy / 2.0) + 20;
-      calcClosedLoopControl();
-      monitorPlateTemp();
-      break;
+  case OP_MD_IDLE:
+    resetPID();
+    break;
 
-    case OP_MD_TEMP_HOLD:
-      if (opMode != opModeShadow)
-        tempSP = tempVar;
-      calcClosedLoopControl();
-      monitorPlateTemp();
-      break;
+  case OP_MD_SP_SET:
+    tempSP = (knobProxy / 2.0) + 20;
+    calcClosedLoopControl();
+    monitorPlateTemp();
+    break;
 
-    case OP_MD_IND_MAN:
-      resetPID();
-      monitorPlateTemp();
+  case OP_MD_TEMP_HOLD:
+    if (opMode != opModeShadow)
+      tempSP = tempVar;
+    calcClosedLoopControl();
+    monitorPlateTemp();
+    break;
 
-      heatVar02 = knobProxy;
-      break;
+  case OP_MD_IND_MAN:
+    resetPID();
+    monitorPlateTemp();
 
-    case OP_MD_RESET_MIN_MAX:
-      resetPID();
-      break;
+    heatVar02 = knobProxy;
+    break;
+
+  case OP_MD_RESET_MIN_MAX:
+    resetPID();
+    break;
   }
   heatVar01 = heatVar00;
   opModeShadow = opMode;
+  tempVarShadow = tempVar;
 }
 
 //-----------------------------------------------------------------
@@ -677,6 +839,10 @@ void loop(void) {
   knobInChan.procInChan();
   iInChan.procInChan();
   btnChan.procInBtn();
+  tempVar = bme01->readTemperature();
+  // prsVar = bme01->readPressure() / 100.0F;
+  // altVar = bme01->readAltitude(SEALEVELPRESSURE_HPA);
+  humVar = bme01->readHumidity();
 
   taskManager();
 
