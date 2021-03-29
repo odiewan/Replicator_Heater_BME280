@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <String.h>
 #include <serialPrint.h>
+#include <Adafruit_ADT7410.h>
 #include <Adafruit_BME280.h>
 #include <Adafruit_Sensor.h>
 #include <u8TextBox.h>
@@ -211,6 +212,7 @@ String pwrUpStr[NUM_PWRUP_STEPS] = {
 enum errorStates {
     ERR_ST_NA,
     ERR_ST_NO_ERR,
+    ERR_ST_I2C_FAIL,
     ERR_ST_OVERTEMP,
     NUM_ERR_STATES
 };
@@ -218,6 +220,8 @@ enum errorStates {
 String errStStr[NUM_ERR_STATES] = {
     "ERR_ST_NA",
     "ERR_ST_NO_ERR",
-    "ERR_ST_OVERTEMP"};
+    "ERR_ST_I2C_FAIL"
+    "ERR_ST_OVERTEMP"
+};
 
 #endif

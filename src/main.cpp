@@ -11,16 +11,14 @@ int gLedState;
 
 int iCount;
 
-float tempVar;
-float tempVarShadow;
+float tempADTVar;
+float tempADTVarShadow;
+float tempBMEVar;
+float tempBMEVarShadow;
 float altVar;
 float prsVar;
 float humVar;
 
-// float tempVar;
-// float altVar;
-// float prsVar;
-// float humVar;
 
 
 
@@ -57,6 +55,7 @@ float tempErr;
 float tempErrOvr;
 float tempCV;
 float tempPV;
+float tempPVShadow;
 float tempKI;
 float tempKP;
 float tempPComp;
@@ -72,7 +71,7 @@ int minT; // Typ: 25c -> 533
 int maxT;    // Typ: ?? -> 850
 int rangeT;
 
-
+Adafruit_ADT7410 *adt01;
 Adafruit_BME280 *bme01;
 u8g2Disp * u8disp00;
 u8g2TextBox * utbTMP;
@@ -80,22 +79,72 @@ u8g2TextBox * utbSP;
 // u8g2TextBox * utbHCmd;
 u8g2BarGraph * ubgCtrlVar;
 int bme280_ok;
+int adt7410_OK;
 
 
 //-----------------------------------------------------------------------------
+void setStatLEDs() {
+  digitalWrite(STAT_OUT_PIN, statLedState);
+  analogWrite(R_LED_OUT_PIN, rLedState);
+  digitalWrite(Y_LED_OUT_PIN, yLedState);
+  digitalWrite(G_LED_OUT_PIN, gLedState);
+
+}
+
+//-----------------------------------------------------------------------------
 void statLEDsON() {
-  digitalWrite(STAT_OUT_PIN, LOW);
-  analogWrite(R_LED_OUT_PIN, 0);
-  digitalWrite(Y_LED_OUT_PIN, LOW);
-  digitalWrite(G_LED_OUT_PIN, LOW);
+  statLedState = true;
+  rLedState = 250;
+  yLedState = true;
+  gLedState = true;
 }
 
 //-----------------------------------------------------------------------------
 void statLEDsOFF() {
-  digitalWrite(STAT_OUT_PIN, HIGH);
-  analogWrite(R_LED_OUT_PIN, 250);
-  digitalWrite(Y_LED_OUT_PIN, HIGH);
-  digitalWrite(G_LED_OUT_PIN, HIGH);
+  statLedState = false;
+  rLedState = 0;
+  yLedState = false;
+  gLedState = false;
+}
+
+//-----------------------------------------------------------------------------
+void statLEDsToggle() {
+  statLedState = !statLedState;
+  rLedState == 250 ? 0 : 250;
+  yLedState = !yLedState;
+  gLedState = !gLedState;
+}
+
+
+//-----------------------------------------------------------------------------
+void setupeTFT() {
+
+  Serial.println("Init u8g2Disp...");
+  u8disp00 = new u8g2Disp();
+  Serial.println("Init u8g2Disp done");
+
+  statLEDsToggle();
+  errorState = ERR_ST_NO_ERR;
+
+  Serial.println("Init u8g2 Graphic Elements.");
+  ubgCtrlVar = new u8g2BarGraph(u8disp00, BAR_GRAPH_CV_X, BAR_GRAPH_CV_Y, BAR_GRAPH_CV_H, BAR_GRAPH_CV_W, 255);
+
+  statLEDsToggle();
+
+  Serial.println("Init u8g2 Graphic Elements..");
+  utbTMP = new u8g2TextBox(85, U8D_ROW_00, "T:XX ", u8g2_font_t0_17b_tf);
+
+  statLEDsToggle();
+
+  Serial.println("Init u8g2 Graphic Elements...");
+  utbSP = new u8g2TextBox(8, U8D_ROW_01, "S:XX ", u8g2_font_t0_17b_tf);
+
+  statLEDsToggle();
+
+  // utbHCmd = new u8g2TextBox(85, U8D_ROW_01, "C:XX ", u8g2_font_t0_17b_tf);
+  Serial.println("Init u8g2 Graphic Elements: DONE");
+
+  statLEDsToggle();
 }
 
 
@@ -104,9 +153,13 @@ void setup() {
   int tmr = 0;
   int toggle = 0;
   int serialOk = 0;
+  adt7410_OK = 0;
   bme280_ok = 0;
   iCount = 0;
 
+  rLedState = 0;
+  yLedState = 0;
+  gLedState = 0;
 
   AppTitle = "Replicator_Heater_BME280";
   AppVersion = "v0.0.0";
@@ -118,14 +171,14 @@ void setup() {
 
   pinMode(PUMP_OUT_PIN, OUTPUT);
 
-  statLEDsON();
-
+  statLEDsToggle();
 
   Serial.begin(9600);
 
   bme01 = new Adafruit_BME280();
+  adt01 = new Adafruit_ADT7410();
 
-  statLEDsON();
+  statLEDsToggle();
 
   tmr = SER_DELAY;
   // u8disp00->writeTxt_clr("Init serial...");
@@ -141,67 +194,60 @@ void setup() {
     tmr--;
   }
 
-  statLEDsOFF();
+  statLEDsToggle();
   Serial.println("Serial Ready");
 
   Serial.println(AppTitle);
   Serial.println(AppVersion);
 
-  statLEDsON();
+  statLEDsToggle();
   Wire.begin();
-  statLEDsOFF();
+  statLEDsToggle();
 
-  Serial.println("Init u8g2Disp...");
-  u8disp00 = new u8g2Disp();
-  Serial.println("Init u8g2Disp done");
 
-  statLEDsON();
+  setupeTFT();
 
-  Serial.println("Init u8g2 Graphic Elements.");
-  ubgCtrlVar = new u8g2BarGraph(u8disp00, BAR_GRAPH_CV_X, BAR_GRAPH_CV_Y, BAR_GRAPH_CV_H, BAR_GRAPH_CV_W, 255);
 
-  statLEDsOFF();
-
-  Serial.println("Init u8g2 Graphic Elements..");
-  utbTMP = new u8g2TextBox(85, U8D_ROW_00, "T:XX ", u8g2_font_t0_17b_tf);
-
-  statLEDsON();
-
-  Serial.println("Init u8g2 Graphic Elements...");
-  utbSP = new u8g2TextBox(8, U8D_ROW_01, "S:XX ", u8g2_font_t0_17b_tf);
-
-  statLEDsOFF();
-
-  // utbHCmd = new u8g2TextBox(85, U8D_ROW_01, "C:XX ", u8g2_font_t0_17b_tf);
-  Serial.println("Init u8g2 Graphic Elements: DONE");
-
-  statLEDsON();
 
   Serial.println("Init BME280 Temp sensor...");
   bme280_ok = bme01->begin();
 
-  statLEDsOFF();
+  statLEDsToggle();
 
-  if(bme280_ok)
+  if(bme280_ok) {
     Serial.println("Init BME280 Temp sensor OK: done");
-  else
+  }
+  else {
     Serial.println("Init BME280 Temp sensor Failed");
+    errorState = ERR_ST_I2C_FAIL;
+  }
 
-  statLEDsON();
+  statLEDsToggle();
+
+  adt7410_OK = adt01->begin(0x49);
+
+  if (adt7410_OK) {
+    Serial.println("Init ADT7410 Temp sensor OK: done");
+  }
+  else {
+    Serial.println("Init ADT7410 Temp sensor Failed");
+    errorState = ERR_ST_I2C_FAIL;
+  }
+
+  statLEDsToggle();
 
   opMode = OP_MD_NA;
-  errorState = ERR_ST_NO_ERR;
+
   pwrUpStep = 0;
   knobInVar = SERVO_POS_MID;
 
-
-  statLEDsOFF();
-
+  statLEDsToggle();
 
   tempLimit = MAX_TEMP_MAN;
   tempErr = 0;              //---PID Loop Err
   tempErrOvr = 0;           //---PID Loop err override
   tempPV = 0;               //---PID Loop process Var
+  tempPVShadow = 0;
   tempCV = 0;               //---PID Loop control Var
   tempPComp = 0;            //---PID Loop proportional control component
   tempIComp = 0;            //---PID Loop integral control component
@@ -215,42 +261,39 @@ void setup() {
   deltaT = 0;
   deltaErr = 0;
 
-
-  statLEDsON();
+  statLEDsToggle();
   Serial.println(AppTitle);
   Serial.println(AppVersion);
 
-  statLEDsOFF();
+  statLEDsToggle();
   Serial.println("Init ioChannels.");
   u8disp00->writeTxt_clr("Init ioChannels.");
   iInChan = ioChannel(IO_TYPE_AIN_NORM, I_IN_PIN, &iInVar);
   iInChan.ioFilter = IO_FILT_WEIGHTED_AVG;
 
-
-  statLEDsON();
+  statLEDsToggle();
   Serial.println("Init ioChannels..");
   u8disp00->writeTxt_clr("Init ioChannels..");
   knobInChan = ioChannel(IO_TYPE_AIN_3V3_255, KNOB_IN_PIN, &knobInVar);
   knobInChan.ioFilter = IO_FILT_WEIGHTED_AVG;
 
-
-  statLEDsOFF();
+  statLEDsToggle();
   Serial.println("Init ioChannels...");
   u8disp00->writeTxt_clr("Init ioChannels...");
   btnChan = ioBtn(BTN_TYPE_MOM_ACTIVE_LOW, BTN_IN_PIN, &btnVar);
 
-  statLEDsON();
+  statLEDsToggle();
   Serial.println("Init ioChannels....");
   u8disp00->writeTxt_clr("Init ioChannels....");
   heatChan00 = ioChannel(IO_TYPE_DOUT_PWM, HEAT00_OUT_PIN, &heatVar00);
   heatChan01 = ioChannel(IO_TYPE_DOUT_PWM, HEAT01_OUT_PIN, &heatVar01);
   heatChan02 = ioChannel(IO_TYPE_DOUT_PWM, HEAT02_OUT_PIN, &heatVar02);
 
-  statLEDsOFF();
+  statLEDsToggle();
   Serial.println("Init ioChannels: DONE");
   u8disp00->writeTxt_clr("Init ioChannels: DONE");
 
-  statLEDsON();
+  statLEDsToggle();
 }
 
 
@@ -296,7 +339,7 @@ void resetPID() {
 
 //-----------------------------------------------------------------
 void calcClosedLoopControl() {
-  tempErr = tempSP - tempVar;
+  tempErr = tempSP - tempPV;
   tempPComp = tempKP * tempErr;
   tempIComp += tempKI * tempErr;
 
@@ -322,7 +365,7 @@ void calcClosedLoopControl() {
 
 //-----------------------------------------------------------------
 int monitorPlateTemp() {
-  if(tempVar < MIN_PLAUSIBLE_TEMP || tempVar > MAX_PLAUSIBLE_TEMP) {
+  if(tempBMEVar < MIN_PLAUSIBLE_TEMP || tempBMEVar > MAX_PLAUSIBLE_TEMP) {
     opMode = OP_MD_IDLE;
     return 0;
   }
@@ -404,7 +447,7 @@ void taskStatLED(void) {
 
 //-----------------------------------------------------------------
 void taskOLED() {
-  utbTMP->utbText = "T:" + String(tempVar, 2);
+  utbTMP->utbText = "T:" + String(tempBMEVar, 2);
   // utbHCmd->utbText = "C:" + String(heatVar00);
   utbSP->utbText = "SP:" + String(tempSP);
   static int oledCnt = 0;
@@ -531,7 +574,8 @@ void serHeatManDisp() {
   if(!(serCnt % 3)) {
       serPrintOpMode();
 
-      serPrintFlt("T:", tempVar);
+      serPrintFlt("Tb:", tempBMEVar);
+      serPrintFlt("Ta:", tempADTVar);
 
 
       serPrintInt("K", knobInVar);
@@ -553,6 +597,38 @@ void serHeatManDisp() {
 }
 
 //-----------------------------------------------------------------
+void serCLDisp() {
+
+  static int serCnt = 0;
+
+  if(!(serCnt % 3)) {
+      serPrintOpMode();
+
+      serPrintFlt("Tb:", tempBMEVar);
+      serPrintFlt("Ta:", tempADTVar);
+      serPrintFlt("dT:", deltaT);
+
+      // serPrintInt("K", knobInVar);
+      serPrintFlt("Err", tempErr);
+
+      serPrintFlt("SP", tempSP);
+      serPrintFlt("CV", tempCV);
+      // serPrintFlt("cP", tempPComp);
+      // serPrintFlt("cI", tempIComp);
+
+      serPrintInt("h0", heatVar00);
+      // serPrintInt("h1", heatVar01);
+      // serPrintInt("h2", heatVar02);
+
+      Serial.print(" ");
+      Serial.print(errStStr[errorState]);
+
+      Serial.print("\n");
+  }
+
+  serCnt++;
+}
+//-----------------------------------------------------------------
 void serDefDisp() {
 
   static int serCnt = 0;
@@ -564,8 +640,8 @@ void serDefDisp() {
       // serPrintInt("rangeT", rangeT);
       // serPrintInt("ic", iCount);
 
-
-      serPrintFlt("T:", tempVar);
+      serPrintFlt("Tb:", tempBMEVar);
+      serPrintFlt("Ta:", tempADTVar);
       serPrintFlt("dT:", deltaT);
 
 
@@ -605,9 +681,10 @@ void serAtmoDisp() {
       // serPrintInt("minT", minT);
       // serPrintInt("rangeT", rangeT);
 
-      serPrintFlt("T:", tempVar);
-      // serPrintFlt("P:", prsVar);
-      // serPrintFlt("A:", altVar);
+      serPrintFlt("Tb:", tempBMEVar);
+      // serPrintFlt("Ta:", tempADTVar);
+      serPrintFlt("P:", prsVar);
+      serPrintFlt("A:", altVar);
       serPrintFlt("H:", humVar);
 
 
@@ -632,12 +709,14 @@ void taskSerial() {
     case OP_MD_PWRUP:
     case OP_MD_RESET:
     case OP_MD_IDLE:
-    case OP_MD_SP_SET:
     case OP_MD_TEMP_HOLD:
     case OP_MD_RESET_MIN_MAX:
       serDefDisp();
       break;
 
+    case OP_MD_SP_SET:
+      serCLDisp();
+      break;
 
     case OP_MD_IND_MAN:
       serHeatManDisp();
@@ -652,10 +731,6 @@ void taskSerial() {
       serSerSettingDisp();
       break;
   }
-
-      // serAtmoDisp();
-
-
 }
 
 //-----------------------------------------------------------------
@@ -719,15 +794,15 @@ void taskHeat() {
   knobProxy = constrain(knobInVar, KNOB_MIN, KNOB_MAX);
   heatVar02 = 0;
 
-  if (tempVar > maxT)
-    maxT = tempVar;
+  if (tempPV > maxT)
+    maxT = tempPV;
 
-  if (tempVar < minT)
-    minT = tempVar;
+  if (tempPV < minT)
+    minT = tempPV;
 
   rangeT = maxT - minT;
 
-  deltaT = tempVar - tempVarShadow;
+  deltaT = tempPV - tempPVShadow;
 
   switch (opMode)
   {
@@ -754,7 +829,7 @@ void taskHeat() {
 
   case OP_MD_TEMP_HOLD:
     if (opMode != opModeShadow)
-      tempSP = tempVar;
+      tempSP = tempPV;
     calcClosedLoopControl();
     monitorPlateTemp();
     break;
@@ -772,15 +847,19 @@ void taskHeat() {
   }
   heatVar01 = heatVar00;
   opModeShadow = opMode;
-  tempVarShadow = tempVar;
+
+  tempPVShadow = tempPV;
+  tempADTVarShadow = tempADTVar;
+  tempBMEVarShadow = tempBMEVar;
 }
 
 //-----------------------------------------------------------------
 void tempCtrl(void) {
-  if (tempVar > tempLimit) {
+  if (tempPV > tempLimit)
+  {
     errorState = ERR_ST_OVERTEMP;
   }
-  else if (tempVar < (tempLimit - TEMP_HYST))
+  else if (tempPV < (tempLimit - TEMP_HYST))
     errorState = ERR_ST_NO_ERR;
 
   if (errorState == ERR_ST_OVERTEMP)
@@ -839,9 +918,11 @@ void loop(void) {
   knobInChan.procInChan();
   iInChan.procInChan();
   btnChan.procInBtn();
-  tempVar = bme01->readTemperature();
-  // prsVar = bme01->readPressure() / 100.0F;
-  // altVar = bme01->readAltitude(SEALEVELPRESSURE_HPA);
+  tempBMEVar = bme01->readTemperature();
+  tempADTVar = adt01->readTempC();
+  tempPV = tempBMEVar;
+  prsVar = bme01->readPressure() / 100.0F;
+  altVar = bme01->readAltitude(SEALEVELPRESSURE_HPA);
   humVar = bme01->readHumidity();
 
   taskManager();
