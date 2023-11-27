@@ -19,9 +19,6 @@ float altVar;
 float prsVar;
 float humVar;
 
-
-
-
 int vInVar;
 ioChannel vInChan;
 
@@ -40,8 +37,11 @@ ioChannel heatChan01;
 int heatVar02;
 ioChannel heatChan02;
 
-int btnVar;
-ioBtn btnChan;
+int btn00Var;
+ioBtn btn00Chan;
+
+int btn01Var;
+ioBtn btn01Chan;
 
 int errorState;
 
@@ -62,37 +62,35 @@ float tempPComp;
 float tempIComp;
 float dT;
 
-
-float deltaT; //Time rate of change of the Heater plate in *C/min
+float deltaT;   //Time rate of change of the Heater plate in *C/min
 float deltaErr; //Time rate of chane of the PID error in *C/min
 
-
 int minT; // Typ: 25c -> 533
-int maxT;    // Typ: ?? -> 850
+int maxT; // Typ: ?? -> 850
 int rangeT;
 
 Adafruit_ADT7410 *adt01;
 Adafruit_BME280 *bme01;
-u8g2Disp * u8disp00;
-u8g2TextBox * utbTMP;
-u8g2TextBox * utbSP;
+u8g2Disp *u8disp00;
+u8g2TextBox *utbTMP;
+u8g2TextBox *utbSP;
 // u8g2TextBox * utbHCmd;
-u8g2BarGraph * ubgCtrlVar;
+u8g2BarGraph *ubgCtrlVar;
 int bme280_ok;
 int adt7410_OK;
 
-
 //-----------------------------------------------------------------------------
-void setStatLEDs() {
+void setStatLEDs()
+{
   digitalWrite(STAT_OUT_PIN, statLedState);
   analogWrite(R_LED_OUT_PIN, rLedState);
   digitalWrite(Y_LED_OUT_PIN, yLedState);
   digitalWrite(G_LED_OUT_PIN, gLedState);
-
 }
 
 //-----------------------------------------------------------------------------
-void statLEDsON() {
+void statLEDsON()
+{
   statLedState = true;
   rLedState = 250;
   yLedState = true;
@@ -100,7 +98,8 @@ void statLEDsON() {
 }
 
 //-----------------------------------------------------------------------------
-void statLEDsOFF() {
+void statLEDsOFF()
+{
   statLedState = false;
   rLedState = 0;
   yLedState = false;
@@ -108,16 +107,17 @@ void statLEDsOFF() {
 }
 
 //-----------------------------------------------------------------------------
-void statLEDsToggle() {
+void statLEDsToggle()
+{
   statLedState = !statLedState;
   rLedState == 250 ? 0 : 250;
   yLedState = !yLedState;
   gLedState = !gLedState;
 }
 
-
 //-----------------------------------------------------------------------------
-void setupeTFT() {
+void setupeTFT()
+{
 
   Serial.println("Init u8g2Disp...");
   u8disp00 = new u8g2Disp();
@@ -147,9 +147,9 @@ void setupeTFT() {
   statLEDsToggle();
 }
 
-
 //-----------------------------------------------------------------------------
-void setup() {
+void setup()
+{
   int tmr = 0;
   int toggle = 0;
   int serialOk = 0;
@@ -182,7 +182,8 @@ void setup() {
 
   tmr = SER_DELAY;
   // u8disp00->writeTxt_clr("Init serial...");
-  while (tmr > 0 && serialOk == 0) {
+  while (tmr > 0 && serialOk == 0)
+  {
 
     if (Serial)
       serialOk = 1;
@@ -204,34 +205,35 @@ void setup() {
   Wire.begin();
   statLEDsToggle();
 
-
   setupeTFT();
-
-
 
   Serial.println("Init BME280 Temp sensor...");
   bme280_ok = bme01->begin();
 
   statLEDsToggle();
 
-  if(bme280_ok) {
+  if (bme280_ok)
+  {
     Serial.println("Init BME280 Temp sensor OK: done");
   }
-  else {
+  else
+  {
     Serial.println("Init BME280 Temp sensor Failed");
-    errorState = ERR_ST_I2C_FAIL;
+    errorState = ERR_ST_I2C_BME_FAIL;
   }
 
   statLEDsToggle();
 
   adt7410_OK = adt01->begin(0x49);
 
-  if (adt7410_OK) {
+  if (adt7410_OK)
+  {
     Serial.println("Init ADT7410 Temp sensor OK: done");
   }
-  else {
+  else
+  {
     Serial.println("Init ADT7410 Temp sensor Failed");
-    errorState = ERR_ST_I2C_FAIL;
+    errorState = ERR_ST_I2C_ADT_FAIL;
   }
 
   statLEDsToggle();
@@ -244,20 +246,20 @@ void setup() {
   statLEDsToggle();
 
   tempLimit = MAX_TEMP_MAN;
-  tempErr = 0;              //---PID Loop Err
-  tempErrOvr = 0;           //---PID Loop err override
-  tempPV = 0;               //---PID Loop process Var
+  tempErr = 0;    //---PID Loop Err
+  tempErrOvr = 0; //---PID Loop err override
+  tempPV = 0;     //---PID Loop process Var
   tempPVShadow = 0;
-  tempCV = 0;               //---PID Loop control Var
-  tempPComp = 0;            //---PID Loop proportional control component
-  tempIComp = 0;            //---PID Loop integral control component
-  tempKI = KI;              //---PID Loop integral gain
-  tempKP = KP;              //---PID Loop proportional gain
-  tempSP = DEF_SP;          //---PID Loop set point
-  minT = 1023;              // Typ: 25c -> 533
-  maxT = 0;                 // Typ: ?? -> 850
-  rangeT = 0;               //
-  dT = LOOP_DLY;            //
+  tempCV = 0;      //---PID Loop control Var
+  tempPComp = 0;   //---PID Loop proportional control component
+  tempIComp = 0;   //---PID Loop integral control component
+  tempKI = KI;     //---PID Loop integral gain
+  tempKP = KP;     //---PID Loop proportional gain
+  tempSP = DEF_SP; //---PID Loop set point
+  minT = 1023;     // Typ: 25c -> 533
+  maxT = 0;        // Typ: ?? -> 850
+  rangeT = 0;      //
+  dT = LOOP_DLY;   //
   deltaT = 0;
   deltaErr = 0;
 
@@ -280,11 +282,13 @@ void setup() {
   statLEDsToggle();
   Serial.println("Init ioChannels...");
   u8disp00->writeTxt_clr("Init ioChannels...");
-  btnChan = ioBtn(BTN_TYPE_MOM_ACTIVE_LOW, BTN_IN_PIN, &btnVar);
+  btn00Chan = ioBtn(BTN_TYPE_MOM_ACTIVE_LOW, BTN00_IN_PIN, &btn00Var);
+  u8disp00->writeTxt_clr("Init ioChannels....");
+  btn01Chan = ioBtn(BTN_TYPE_MOM_ACTIVE_LOW, BTN01_IN_PIN, &btn01Var);
 
   statLEDsToggle();
   Serial.println("Init ioChannels....");
-  u8disp00->writeTxt_clr("Init ioChannels....");
+  u8disp00->writeTxt_clr("Init ioChannels.....");
   heatChan00 = ioChannel(IO_TYPE_DOUT_PWM, HEAT00_OUT_PIN, &heatVar00);
   heatChan01 = ioChannel(IO_TYPE_DOUT_PWM, HEAT01_OUT_PIN, &heatVar01);
   heatChan02 = ioChannel(IO_TYPE_DOUT_PWM, HEAT02_OUT_PIN, &heatVar02);
@@ -296,15 +300,15 @@ void setup() {
   statLEDsToggle();
 }
 
-
-
 //-----------------------------------------------------------------
-float avg(int input) {
+float avg(int input)
+{
   static int ary[SAMPLE_CNT] = {};
 
   float avg = 0;
 
-  for (int x = 0; x < SAMPLE_CNT - 1; x++)  {
+  for (int x = 0; x < SAMPLE_CNT - 1; x++)
+  {
     ary[x] = ary[x + 1];
     avg += ary[x];
   }
@@ -316,18 +320,32 @@ float avg(int input) {
 }
 
 //-----------------------------------------------------------------
-void handleModeBtn(void) {
-  static char btnShadow = 0;
-  if (btnVar != btnShadow && !btnVar)
+void handleModeBtn(void)
+{
+  static char btn00Shadow = 0;
+  if (btn00Var != btn00Shadow && !btn00Var)
     opMode++;
 
   if (opMode >= NUM_OP_MODES)
     opMode = OP_MD_IDLE;
-  btnShadow = btnVar;
+  btn00Shadow = btn00Var;
 }
 
 //-----------------------------------------------------------------
-void resetPID() {
+void handleSelBtn(void)
+{
+  static char btn01Shadow = 0;
+  if (btn00Var != btn01Shadow && !btn00Var)
+    opMode++;
+
+  if (opMode >= NUM_OP_MODES)
+    opMode = OP_MD_IDLE;
+  btn01Shadow = btn01Var;
+}
+
+//-----------------------------------------------------------------
+void resetPID()
+{
   heatVar00 = 0;
   heatVar01 = 0;
 
@@ -338,7 +356,8 @@ void resetPID() {
 }
 
 //-----------------------------------------------------------------
-void calcClosedLoopControl() {
+void calcClosedLoopControl()
+{
   tempErr = tempSP - tempPV;
   tempPComp = tempKP * tempErr;
   tempIComp += tempKI * tempErr;
@@ -349,23 +368,23 @@ void calcClosedLoopControl() {
   if (tempIComp < -MAX_ICOMP)
     tempIComp = -MAX_ICOMP;
 
-
   tempCV = tempPComp + tempIComp;
 
   if (tempCV > 240.0)
     tempCV = 240.0f;
-  else if (tempCV < 0.0) {
+  else if (tempCV < 0.0)
+  {
     tempCV = 0.0f;
   }
-
-
 
   heatVar00 = tempCV;
 }
 
 //-----------------------------------------------------------------
-int monitorPlateTemp() {
-  if(tempBMEVar < MIN_PLAUSIBLE_TEMP || tempBMEVar > MAX_PLAUSIBLE_TEMP) {
+int monitorPlateTemp()
+{
+  if (tempBMEVar < MIN_PLAUSIBLE_TEMP || tempBMEVar > MAX_PLAUSIBLE_TEMP)
+  {
     opMode = OP_MD_IDLE;
     return 0;
   }
@@ -373,121 +392,124 @@ int monitorPlateTemp() {
     return 1;
 }
 
-
 //-----------------------------------------------------------------
-int taskPowerUp(void) {
+int taskPowerUp(void)
+{
   static int pwrUpCnt = 0;
 
   pwrUpCnt++;
 
-  switch (pwrUpStep) {
-    default:
-    case PWRUP_NA:
-      pwrUpStep = PWRUP_0;
-      break;
+  switch (pwrUpStep)
+  {
+  default:
+  case PWRUP_NA:
+    pwrUpStep = PWRUP_0;
+    break;
 
-    case PWRUP_0:
-      pwrUpStep = PWRUP_DONE;
-      break;
+  case PWRUP_0:
+    pwrUpStep = PWRUP_DONE;
+    break;
 
-    case PWRUP_DONE:
-      break;
+  case PWRUP_DONE:
+    break;
   }
 
   return pwrUpStep;
 }
 
 //-----------------------------------------------------------------
-void taskStatLED(void) {
+void taskStatLED(void)
+{
 
-  switch (opMode)  {
-    default:
-    case OP_MD_NA:
-      break;
+  switch (opMode)
+  {
+  default:
+  case OP_MD_NA:
+    break;
 
-    case OP_MD_BOOT:
-      statLedState = !statLedState;
-      break;
+  case OP_MD_BOOT:
+    statLedState = !statLedState;
+    break;
 
-    case OP_MD_PWRUP:
-      statLedState = 0;
+  case OP_MD_PWRUP:
+    statLedState = 0;
 
-      break;
+    break;
 
-    case OP_MD_RESET:
-      statLedState = 0;
+  case OP_MD_RESET:
+    statLedState = 0;
 
-      break;
+    break;
 
-    case OP_MD_IDLE:
-      statLedState = 0;
-      break;
+  case OP_MD_IDLE:
+    statLedState = 0;
+    break;
 
-    case OP_MD_SP_SET:
-    case OP_MD_IND_MAN:
-    case OP_MD_TEMP_HOLD:
-      statLedState = 1;
-      break;
+  case OP_MD_SP_SET:
+  case OP_MD_IND_MAN:
+  case OP_MD_TEMP_HOLD:
+    statLedState = 1;
+    break;
 
-    case OP_MD_RESET_MIN_MAX:
-      statLedState = 1;
-      break;
+  case OP_MD_RESET_MIN_MAX:
+    statLedState = 1;
+    break;
 
-    case OP_MD_OLED_SETTINGS:
-      statLedState = 1;
-      break;
+  case OP_MD_OLED_SETTINGS:
+    statLedState = 1;
+    break;
 
-    case OP_MD_SERIAL_SETTINGS:
-      statLedState = 1;
-      break;
+  case OP_MD_SERIAL_SETTINGS:
+    statLedState = 1;
+    break;
   }
 }
 
-
-
 //-----------------------------------------------------------------
-void taskOLED() {
+void taskOLED()
+{
   utbTMP->utbText = "T:" + String(tempBMEVar, 2);
   // utbHCmd->utbText = "C:" + String(heatVar00);
   utbSP->utbText = "SP:" + String(tempSP);
   static int oledCnt = 0;
 
-  if (!(oledCnt % 2)) {
-    switch (opMode) {
-      default:
-      case OP_MD_NA:
-        break;
+  if (!(oledCnt % 2))
+  {
+    switch (opMode)
+    {
+    default:
+    case OP_MD_NA:
+      break;
 
-      case OP_MD_BOOT:
-        u8disp00->writeTxt_clr("Booting");
-        break;
+    case OP_MD_BOOT:
+      u8disp00->writeTxt_clr("Booting");
+      break;
 
-      case OP_MD_PWRUP:
-        u8disp00->writeTxt_clr("Powerwup");
-        break;
+    case OP_MD_PWRUP:
+      u8disp00->writeTxt_clr("Powerwup");
+      break;
 
-      case OP_MD_RESET:
-        u8disp00->writeTxt_clr("Reset");
-        break;
+    case OP_MD_RESET:
+      u8disp00->writeTxt_clr("Reset");
+      break;
 
-      case OP_MD_IDLE:
-      case OP_MD_SP_SET:
-      case OP_MD_IND_MAN:
-      case OP_MD_TEMP_HOLD:
-      case OP_MD_OLED_SETTINGS:
-      case OP_MD_SERIAL_SETTINGS:
-        u8disp00->clearBufferU8D();
-        u8disp00->writeTxt(opMdOledStr[opMode]);
-        u8disp00->writeTxt(utbSP);
-        ubgCtrlVar->writeBuffer(heatVar00);
-        u8disp00->writeTxt(utbTMP);
-        u8disp00->sendBufferU8D();
-        break;
+    case OP_MD_IDLE:
+    case OP_MD_SP_SET:
+    case OP_MD_IND_MAN:
+    case OP_MD_TEMP_HOLD:
+    case OP_MD_OLED_SETTINGS:
+    case OP_MD_SERIAL_SETTINGS:
+      u8disp00->clearBufferU8D();
+      u8disp00->writeTxt(opMdOledStr[opMode]);
+      u8disp00->writeTxt(utbSP);
+      ubgCtrlVar->writeBuffer(heatVar00);
+      u8disp00->writeTxt(utbTMP);
+      u8disp00->sendBufferU8D();
+      break;
 
+    case OP_MD_RESET_MIN_MAX:
 
-      case OP_MD_RESET_MIN_MAX:
-
-        break;
+      break;
     }
   }
 
@@ -522,14 +544,16 @@ void serPrintSerMode(void)
 }
 
 //-----------------------------------------------------------------
-void serOledSettingDisp() {
+void serOledSettingDisp()
+{
   static int serCnt = 0;
 
   if (!(serCnt % 3))
   {
     serPrintOledMode();
 
-    serPrintInt("btn", btnVar);
+    serPrintInt("btn00", btn00Var);
+    serPrintInt("btn01", btn01Var);
     serPrintInt("K", knobInVar);
 
     //Serial.print(" err:");
@@ -543,14 +567,16 @@ void serOledSettingDisp() {
 }
 
 //-----------------------------------------------------------------
-void serSerSettingDisp() {
+void serSerSettingDisp()
+{
   static int serCnt = 0;
 
   if (!(serCnt % 3))
   {
     serPrintSerMode();
 
-    serPrintInt(" btn", btnVar);
+    serPrintInt(" btn00", btn00Var);
+    serPrintInt(" btn01", btn01Var);
     serPrintInt(" K", knobInVar);
 
     //Serial.print(" err:");
@@ -563,231 +589,235 @@ void serSerSettingDisp() {
   serCnt++;
 }
 
-
-
-
 //-----------------------------------------------------------------
-void serHeatManDisp() {
+void serHeatManDisp()
+{
 
   static int serCnt = 0;
 
-  if(!(serCnt % 3)) {
-      serPrintOpMode();
+  if (!(serCnt % 3))
+  {
+    serPrintOpMode();
 
-      serPrintFlt("Tb:", tempBMEVar);
-      serPrintFlt("Ta:", tempADTVar);
+    serPrintFlt("Tb:", tempBMEVar);
+    serPrintFlt("Ta:", tempADTVar);
 
+    serPrintInt("K", knobInVar);
 
-      serPrintInt("K", knobInVar);
+    serPrintInt("h0", heatVar00);
+    serPrintInt("h1", heatVar01);
+    serPrintInt("h2", heatVar02);
 
+    //Serial.print(" err:");
+    Serial.print(" ");
+    Serial.print(errStStr[errorState]);
 
-      serPrintInt("h0", heatVar00);
-      serPrintInt("h1", heatVar01);
-      serPrintInt("h2", heatVar02);
-
-
-      //Serial.print(" err:");
-      Serial.print(" ");
-      Serial.print(errStStr[errorState]);
-
-      Serial.print("\n");
+    Serial.print("\n");
   }
 
   serCnt++;
 }
 
 //-----------------------------------------------------------------
-void serCLDisp() {
+void serCLDisp()
+{
 
   static int serCnt = 0;
 
-  if(!(serCnt % 3)) {
-      serPrintOpMode();
+  if (!(serCnt % 3))
+  {
+    serPrintOpMode();
 
-      serPrintFlt("Tb:", tempBMEVar);
-      serPrintFlt("Ta:", tempADTVar);
-      serPrintFlt("dT:", deltaT);
+    serPrintFlt("Tb:", tempBMEVar);
+    serPrintFlt("Ta:", tempADTVar);
+    serPrintFlt("dT:", deltaT);
 
-      // serPrintInt("K", knobInVar);
-      serPrintFlt("Err", tempErr);
+    // serPrintInt("K", knobInVar);
+    serPrintFlt("Err", tempErr);
 
-      serPrintFlt("SP", tempSP);
-      serPrintFlt("CV", tempCV);
-      // serPrintFlt("cP", tempPComp);
-      // serPrintFlt("cI", tempIComp);
+    serPrintFlt("SP", tempSP);
+    serPrintFlt("CV", tempCV);
+    // serPrintFlt("cP", tempPComp);
+    // serPrintFlt("cI", tempIComp);
 
-      serPrintInt("h0", heatVar00);
-      // serPrintInt("h1", heatVar01);
-      // serPrintInt("h2", heatVar02);
+    serPrintInt("h0", heatVar00);
+    serPrintInt("h1", heatVar01);
+    // serPrintInt("h2", heatVar02);
 
-      Serial.print(" ");
-      Serial.print(errStStr[errorState]);
+    Serial.print(" ");
+    Serial.print(errStStr[errorState]);
 
-      Serial.print("\n");
+    Serial.print("\n");
   }
 
   serCnt++;
 }
 //-----------------------------------------------------------------
-void serDefDisp() {
+void serDefDisp()
+{
 
   static int serCnt = 0;
 
-  if(!(serCnt % 3)) {
-      serPrintOpMode();
-      // serPrintInt("maxT", maxT);
-      // serPrintInt("minT", minT);
-      // serPrintInt("rangeT", rangeT);
-      // serPrintInt("ic", iCount);
+  if (!(serCnt % 3))
+  {
+    serPrintOpMode();
+    // serPrintInt("maxT", maxT);
+    // serPrintInt("minT", minT);
+    // serPrintInt("rangeT", rangeT);
+    // serPrintInt("ic", iCount);
 
-      serPrintFlt("Tb:", tempBMEVar);
-      serPrintFlt("Ta:", tempADTVar);
-      serPrintFlt("dT:", deltaT);
+    serPrintFlt("Tb:", tempBMEVar);
+    serPrintFlt("Ta:", tempADTVar);
+    serPrintFlt("dT:", deltaT);
 
+    // serPrintFlt("P:", prsVar);
+    // serPrintFlt("A:", altVar);
+    serPrintFlt("H:", humVar);
+    serPrintInt("K", knobInVar);
+    serPrintFlt("Err", tempErr);
 
+    serPrintFlt("SP", tempSP);
+    serPrintFlt("CV", tempCV);
+    // serPrintFlt("cP", tempPComp);
+    // serPrintFlt("cI", tempIComp);
 
-      // serPrintFlt("P:", prsVar);
-      // serPrintFlt("A:", altVar);
-      serPrintFlt("H:", humVar);
-      serPrintInt("K", knobInVar);
-      serPrintFlt("Err", tempErr);
+    serPrintInt("h0", heatVar00);
+    serPrintInt("h1", heatVar01);
+    serPrintInt("h2", heatVar02);
 
-      serPrintFlt("SP", tempSP);
-      serPrintFlt("CV", tempCV);
-      // serPrintFlt("cP", tempPComp);
-      // serPrintFlt("cI", tempIComp);
+    Serial.print(" ");
+    Serial.print(errStStr[errorState]);
 
-      serPrintInt("h0", heatVar00);
-      serPrintInt("h1", heatVar01);
-      serPrintInt("h2", heatVar02);
-
-      Serial.print(" ");
-      Serial.print(errStStr[errorState]);
-
-      Serial.print("\n");
-  }
-
-  serCnt++;
-}
-
-//-----------------------------------------------------------------
-void serAtmoDisp() {
-
-  static int serCnt = 0;
-
-  if(!(serCnt % 3)) {
-      serPrintOpMode();
-      // serPrintInt("maxT", maxT);
-      // serPrintInt("minT", minT);
-      // serPrintInt("rangeT", rangeT);
-
-      serPrintFlt("Tb:", tempBMEVar);
-      // serPrintFlt("Ta:", tempADTVar);
-      serPrintFlt("P:", prsVar);
-      serPrintFlt("A:", altVar);
-      serPrintFlt("H:", humVar);
-
-
-
-      //Serial.print(" err:");
-      Serial.print(" ");
-      Serial.print(errStStr[errorState]);
-
-      Serial.print("\n");
+    Serial.print("\n");
   }
 
   serCnt++;
 }
 
 //-----------------------------------------------------------------
-void taskSerial() {
+void serAtmoDisp()
+{
 
-  switch (opMode) {
-    default:
-    case OP_MD_NA:
-    case OP_MD_BOOT:
-    case OP_MD_PWRUP:
-    case OP_MD_RESET:
-    case OP_MD_IDLE:
-    case OP_MD_TEMP_HOLD:
-    case OP_MD_RESET_MIN_MAX:
-      serDefDisp();
-      break;
+  static int serCnt = 0;
 
-    case OP_MD_SP_SET:
-      serCLDisp();
-      break;
+  if (!(serCnt % 3))
+  {
+    serPrintOpMode();
+    // serPrintInt("maxT", maxT);
+    // serPrintInt("minT", minT);
+    // serPrintInt("rangeT", rangeT);
 
-    case OP_MD_IND_MAN:
-      serHeatManDisp();
-      break;
+    // serPrintFlt("Sel:", temp);
+    serPrintFlt("Tb:", tempBMEVar);
+    // serPrintFlt("Ta:", tempADTVar);
+    serPrintFlt("P:", prsVar);
+    serPrintFlt("A:", altVar);
+    serPrintFlt("H:", humVar);
 
+    //Serial.print(" err:");
+    Serial.print(" ");
+    Serial.print(errStStr[errorState]);
 
-    case OP_MD_OLED_SETTINGS:
-      serOledSettingDisp();
-      break;
+    Serial.print("\n");
+  }
 
-    case OP_MD_SERIAL_SETTINGS:
-      serSerSettingDisp();
-      break;
+  serCnt++;
+}
+
+//-----------------------------------------------------------------
+void taskSerial()
+{
+
+  switch (opMode)
+  {
+  default:
+  case OP_MD_NA:
+  case OP_MD_BOOT:
+  case OP_MD_PWRUP:
+  case OP_MD_RESET:
+  case OP_MD_IDLE:
+  case OP_MD_TEMP_HOLD:
+  case OP_MD_RESET_MIN_MAX:
+    serAtmoDisp();
+    break;
+
+  case OP_MD_SP_SET:
+    serCLDisp();
+    break;
+
+  case OP_MD_IND_MAN:
+    serHeatManDisp();
+    break;
+
+  case OP_MD_OLED_SETTINGS:
+    serOledSettingDisp();
+    break;
+
+  case OP_MD_SERIAL_SETTINGS:
+    serSerSettingDisp();
+    break;
   }
 }
 
 //-----------------------------------------------------------------
-void taskOpMode(void) {
+void taskOpMode(void)
+{
 
-  switch (opMode) {
-    default:
-    case OP_MD_NA:
-      //--Go directly to BOOT mode---
+  switch (opMode)
+  {
+  default:
+  case OP_MD_NA:
+    //--Go directly to BOOT mode---
+    opMode = OP_MD_BOOT;
+    break;
+
+  case OP_MD_BOOT:
+    //---Stay in BOOT mode for 100 ticks---
+    if (iCount < 50)
       opMode = OP_MD_BOOT;
-      break;
+    else
+      opMode = OP_MD_PWRUP;
+    break;
 
-    case OP_MD_BOOT:
-      //---Stay in BOOT mode for 100 ticks---
-      if (iCount < 50)
-        opMode = OP_MD_BOOT;
-      else
-        opMode = OP_MD_PWRUP;
-      break;
+  case OP_MD_PWRUP:
+    //---Stay in PWRUP mode until it's done---
+    if (taskPowerUp() == PWRUP_DONE)
+      opMode = OP_MD_IDLE;
+    else
+      opMode = OP_MD_PWRUP;
+    handleModeBtn();
+    handleSelBtn();
+    break;
 
-    case OP_MD_PWRUP:
-      //---Stay in PWRUP mode until it's done---
-      if (taskPowerUp() == PWRUP_DONE)
-        opMode = OP_MD_IDLE;
-      else
-        opMode = OP_MD_PWRUP;
-      handleModeBtn();
-      break;
+  case OP_MD_RESET:
+  case OP_MD_IDLE:
+  case OP_MD_SP_SET:
+  case OP_MD_TEMP_HOLD:
+  case OP_MD_IND_MAN:
 
-    case OP_MD_RESET:
-    case OP_MD_IDLE:
-    case OP_MD_SP_SET:
-    case OP_MD_TEMP_HOLD:
-    case OP_MD_IND_MAN:
+    handleModeBtn();
+    handleSelBtn();
+    break;
 
-      handleModeBtn();
-      break;
+  case OP_MD_RESET_MIN_MAX:
+    minT = 1023;
+    maxT = 0;
+    opMode = OP_MD_OLED_SETTINGS;
+    handleModeBtn();
+    handleSelBtn();
+    break;
 
-
-    case OP_MD_RESET_MIN_MAX:
-      minT = 1023;
-      maxT = 0;
-      opMode = OP_MD_OLED_SETTINGS;
-      handleModeBtn();
-      break;
-
-    case OP_MD_OLED_SETTINGS:
-    case OP_MD_SERIAL_SETTINGS:
-      handleModeBtn();
-      break;
+  case OP_MD_OLED_SETTINGS:
+  case OP_MD_SERIAL_SETTINGS:
+    handleModeBtn();
+    handleSelBtn();
+    break;
   }
-
 }
 
-
 //-----------------------------------------------------------------
-void taskHeat() {
+void taskHeat()
+{
   static int knobProxy = 0;
   static int opModeShadow = opMode;
   knobInVar -= 7;
@@ -845,7 +875,7 @@ void taskHeat() {
     resetPID();
     break;
   }
-  heatVar01 = heatVar00;
+  heatVar01 = 255 - heatVar00;
   opModeShadow = opMode;
 
   tempPVShadow = tempPV;
@@ -854,58 +884,59 @@ void taskHeat() {
 }
 
 //-----------------------------------------------------------------
-void tempCtrl(void) {
-  if (tempPV > tempLimit)
-  {
-    errorState = ERR_ST_OVERTEMP;
-  }
-  else if (tempPV < (tempLimit - TEMP_HYST))
-    errorState = ERR_ST_NO_ERR;
+void tempCtrl(void)
+{
+  // if (errorState == ERR_ST_NO_ERR) {
 
-  if (errorState == ERR_ST_OVERTEMP)
-    heatVar00 = 0;
-
+  //   if (tempPV > tempLimit) {
+  //     errorState = ERR_ST_OVERTEMP;
+  //   }
+  //   else if (tempPV < (tempLimit - TEMP_HYST))
+  //     errorState = ERR_ST_NO_ERR;
+  // }
+  //   heatVar00 = 0;
 }
 
 //-----------------------------------------------------------------
-void taskManager(void) {
+void taskManager(void)
+{
 
   static int taskIdx = 0;
 
+  switch (taskIdx)
+  {
 
-  switch (taskIdx) {
+  default:
+  case TASK_SAWTOOTH:
+  case TASK_VOLTAGE_MON:
+    break;
 
-    default:
-    case TASK_SAWTOOTH:
-    case TASK_VOLTAGE_MON:
-      break;
+  case TASK_STAT_LED:
+    taskStatLED();
+    break;
 
-    case TASK_STAT_LED:
-      taskStatLED();
-      break;
+  //---Analog to momentary switch
+  case TASK_BTN_READ:
+    //---TODO: generalize to pass button structure/class as arg---
+    // taskBtn();
+    break;
 
-    //---Analog to momentary switch
-    case TASK_BTN_READ:
-      //---TODO: generalize to pass button structure/class as arg---
-      // taskBtn();
-      break;
+  //---Op mode state engine task---
+  case TASK_OP_MODE:
+    taskOpMode();
+    break;
 
-    //---Op mode state engine task---
-    case TASK_OP_MODE:
-      taskOpMode();
-      break;
+  case TASK_HEAT_CTRL:
+    taskHeat();
+    break;
 
-    case TASK_HEAT_CTRL:
-      taskHeat();
-      break;
+  case TASK_SERIAL:
+    taskSerial();
+    break;
 
-    case TASK_SERIAL:
-      taskSerial();
-      break;
-
-    case TASK_OLED:
-      taskOLED();
-      break;
+  case TASK_OLED:
+    taskOLED();
+    break;
   }
 
   taskIdx++;
@@ -914,16 +945,36 @@ void taskManager(void) {
 }
 
 //-----------------------------------------------------------------
-void loop(void) {
+void loop(void)
+{
   knobInChan.procInChan();
   iInChan.procInChan();
-  btnChan.procInBtn();
-  tempBMEVar = bme01->readTemperature();
-  tempADTVar = adt01->readTempC();
-  tempPV = tempBMEVar;
-  prsVar = bme01->readPressure() / 100.0F;
-  altVar = bme01->readAltitude(SEALEVELPRESSURE_HPA);
-  humVar = bme01->readHumidity();
+  btn00Chan.procInBtn();
+  btn01Chan.procInBtn();
+
+  if (adt7410_OK) {
+    tempADTVar = adt01->readTempC();
+  }
+  else {
+    tempADTVar = 0;
+    tempPV = 0;
+  }
+
+  if (bme280_ok)  {
+    tempBMEVar = bme01->readTemperature();
+    tempPV = tempBMEVar;
+    prsVar = bme01->readPressure() / 100.0F;
+    altVar = bme01->readAltitude(SEALEVELPRESSURE_HPA);
+    humVar = bme01->readHumidity();
+  }
+  else {
+
+    tempBMEVar = 0;
+    tempPV = 0;
+    prsVar = 0;
+    altVar = 0;
+    humVar = 0;
+  }
 
   taskManager();
 
@@ -931,8 +982,8 @@ void loop(void) {
   heatChan00.procOutChan();
   heatChan01.procOutChan();
   heatChan02.procOutChan();
-  analogWrite(Y_LED_OUT_PIN, 255-heatVar02);
-  analogWrite(R_LED_OUT_PIN, 255-heatVar00);
+  analogWrite(Y_LED_OUT_PIN, 255 - heatVar02);
+  analogWrite(R_LED_OUT_PIN, 255 - heatVar00);
   digitalWrite(STAT_OUT_PIN, statLedState);
 
   iCount++;

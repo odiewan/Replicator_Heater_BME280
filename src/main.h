@@ -13,66 +13,67 @@
 #include <ioChan.h>
 #include <ioBtn.h>
 
-#define STAT_OUT_PIN        LED_BUILTIN /* 13 */
+#define STAT_OUT_PIN LED_BUILTIN /* 13 */
 
-#define KNOB_IN_PIN         A0          /* 14 */
-#define NTC_IN_PIN          A1          /* 15 */
-#define AUX_TEMP_IN_PIN     A2          /* 16 */
-#define I_IN_PIN            A3          /* 17 */
-#define V_IN_PIN            A4          /* 18 */
+#define KNOB_IN_PIN A0     /* 14 */
+#define NTC_IN_PIN A1      /* 15 */
+#define AUX_TEMP_IN_PIN A2 /* 16 */
+#define I_IN_PIN A3        /* 17 */
+#define V_IN_PIN A4        /* 18 */
 
-#define PUMP_OUT_PIN           2
-#define G_LED_OUT_PIN          4
-#define Y_LED_OUT_PIN          5
-#define R_LED_OUT_PIN          6
-#define HEAT00_OUT_PIN         7
-#define HEAT01_OUT_PIN         8
-#define HEAT02_OUT_PIN         9
-#define BTN_IN_PIN             12
+#define PUMP_OUT_PIN        2
+#define G_LED_OUT_PIN       4
+#define Y_LED_OUT_PIN       5
+#define R_LED_OUT_PIN       6
+#define HEAT00_OUT_PIN      7
+#define HEAT01_OUT_PIN      8
+#define HEAT02_OUT_PIN      9
+#define BTN00_IN_PIN        12
+#define BTN01_IN_PIN        11
 
+#define MAX_TEMP_MAN        100
+#define MAX_TEMP_MAX        120
+#define MAX_PLAUSIBLE_TEMP  120
+#define MIN_PLAUSIBLE_TEMP  10
 
-#define MAX_TEMP_MAN           100
-#define MAX_TEMP_MAX           120
-#define MAX_PLAUSIBLE_TEMP     120
-#define MIN_PLAUSIBLE_TEMP     10
+#define MAX_PCOMP           200
+#define MAX_ICOMP           200
 
-#define MAX_PCOMP              200
-#define MAX_ICOMP              200
+#define KP 8
+#define KI 2
+#define DEF_SP 15
 
-#define KP                     5
-#define KI                     1
-#define DEF_SP                 25
+#define TEMP_HYST 2
 
-#define TEMP_HYST              2
-
-#define SAMPLE_CNT             10
+#define SAMPLE_CNT 10
 
 //---Non HW defines---
-#define SER_DELAY              3
-#define SER_FREQ               3
-#define LOOP_DLY               5
-#define BTN_THRES              50
-#define KNOB_MAX               200
-#define KNOB_MIN               0
-#define FRAME_WIDTH            50 / LOOP_DLY
-#define NUM_BLINK_FRAMES       5
-#define BLINK_PERCENT          10
+#define SER_DELAY 3
+#define SER_FREQ 3
+#define LOOP_DLY 5
+#define BTN_THRES 50
+#define KNOB_MAX 200
+#define KNOB_MIN 0
+#define FRAME_WIDTH 50 / LOOP_DLY
+#define NUM_BLINK_FRAMES 5
+#define BLINK_PERCENT 10
 
-#define U8D_ROW_00             16
-#define U8D_ROW_01             32
+#define U8D_ROW_00 16
+#define U8D_ROW_01 32
 
-#define BAR_GRAPH_BOOT_X       88
-#define BAR_GRAPH_BOOT_Y       20
-#define BAR_GRAPH_BOOT_H       12
-#define BAR_GRAPH_BOOT_W       36
+#define BAR_GRAPH_BOOT_X 88
+#define BAR_GRAPH_BOOT_Y 20
+#define BAR_GRAPH_BOOT_H 12
+#define BAR_GRAPH_BOOT_W 36
 
-#define BAR_GRAPH_CV_X         88
-#define BAR_GRAPH_CV_Y         20
-#define BAR_GRAPH_CV_H         12
-#define BAR_GRAPH_CV_W         36
-#define SEALEVELPRESSURE_HPA   (1013.25)
+#define BAR_GRAPH_CV_X 88
+#define BAR_GRAPH_CV_Y 20
+#define BAR_GRAPH_CV_H 12
+#define BAR_GRAPH_CV_W 36
+#define SEALEVELPRESSURE_HPA (1013.25)
 
-enum TaskType {
+enum TaskType
+{
     TASK_STAT_LED,
     TASK_POWER_UP,
     TASK_SAWTOOTH,
@@ -109,7 +110,8 @@ String taskStr[NUM_TASKS] = {
 
 };
 
-enum opModes {
+enum opModes
+{
     OP_MD_NA,
     OP_MD_BOOT,
     OP_MD_PWRUP,
@@ -149,8 +151,7 @@ String opMdOledStr[NUM_OP_MODES] = {
     "Ind",
     "Rst Min/max",
     "OLED Opt",
-    "Ser Opt"
-};
+    "Ser Opt"};
 
 enum displayModeStr
 {
@@ -170,8 +171,7 @@ String displayModeStr[NUM_DM_MODES] = {
     "DM ATMO",
     "DM HEAT_MAN",
     "DM SER SETTINGS"
-    "DM OLED SETTINGS"
-};
+    "DM OLED SETTINGS"};
 
 String displayModeStrhortStr[NUM_DM_MODES] = {
     "DM_DEF",
@@ -179,11 +179,10 @@ String displayModeStrhortStr[NUM_DM_MODES] = {
     "DM_ATMO",
     "DM_MAN",
     "DM_SER",
-    "DM_OLED"
-};
+    "DM_OLED"};
 
-
-enum powerUpSteps {
+enum powerUpSteps
+{
     PWRUP_NA,
     PWRUP_0,    //---All LEDs off
     PWRUP_1,    //---LF on
@@ -209,10 +208,13 @@ String pwrUpStr[NUM_PWRUP_STEPS] = {
     "PWRUP_7",
     "PWRUP_DONE"};
 
-enum errorStates {
+enum errorStates
+{
     ERR_ST_NA,
     ERR_ST_NO_ERR,
-    ERR_ST_I2C_FAIL,
+    ERR_ST_I2C_ADT_FAIL,
+    ERR_ST_I2C_BME_FAIL,
+    ERR_ST_I2C_OLED_FAIL,
     ERR_ST_OVERTEMP,
     NUM_ERR_STATES
 };
@@ -220,8 +222,9 @@ enum errorStates {
 String errStStr[NUM_ERR_STATES] = {
     "ERR_ST_NA",
     "ERR_ST_NO_ERR",
-    "ERR_ST_I2C_FAIL"
-    "ERR_ST_OVERTEMP"
-};
+    "ERR_ST_I2C_ADT_FAIL",
+    "ERR_ST_I2C_BME_FAIL",
+    "ERR_ST_I2C_OLED_FAIL",
+    "ERR_ST_OVERTEMP"};
 
 #endif
